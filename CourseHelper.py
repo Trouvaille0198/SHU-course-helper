@@ -162,7 +162,15 @@ class CourseHelper:
         course_info_list = []
         for one_piece in course_info_element.xpath('.//tr[@name="rowclass"]'):
             # 记录一门课程的字段信息
-            course_info_list.append([field.strip() for field in one_piece.xpath('./td/text()')])
+            course_info_list.append([field.xpath('./text()')[0].strip() if field.xpath('./text()') else '' for field in one_piece.xpath('./td')])
+            # 相当于
+            # one_piece_list = []
+            # for field in one_piece.xpath('./td'):
+            #     if field.xpath('./text()'):
+            #         one_piece_list.append(field.xpath('./text()')[0].strip())
+            #     else:
+            #         one_piece_list.append('')
+            # course_info_list.append(one_piece_list)
         # switch to DataFrame
         course_info_columns = ['#', '课程号', '课程名', '学分', '教师号', '教师姓名', '上课时间', '上课地点', '答疑时间', '答疑地点', '校区']
 
