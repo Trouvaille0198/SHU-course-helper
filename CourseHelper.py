@@ -47,9 +47,12 @@ class CourseHelper:
             "password": encrypt(self.password, self.pubkey),  # 密码经过加密
         }
         logger.info('尝试登录...用户名: {}, 密码: {}, 加密后的密码: {}', self.stu_id, self.password, encrypt(self.password, self.pubkey))
-        response = self.session.post(
-            self.login_url, data=post_data, headers=self.headers
-        )
+        try:
+            response = self.session.post(
+                self.login_url, data=post_data, headers=self.headers
+            )
+        except ConnectionError as e:
+            logger.Error('校网波动! {}', e)
         if '学期选择' in response.text:
             logger.info('登陆成功!')
         else:
@@ -74,11 +77,12 @@ class CourseHelper:
         if not term_id:
             logger.error('找不到对应学期!')
             raise RuntimeError('找不到对应学期!')
-        # 维持会话
-        post_data = {"termid": term_id}
-        response = self.session.post(
-            self.select_url, data=post_data, headers=self.headers
-        )
+        else:
+            # 维持会话
+            post_data = {"termid": term_id}
+            response = self.session.post(
+                self.select_url, data=post_data, headers=self.headers
+            )
 
     def save_to_path(self, df, name='unknown', type='csv'):
         """
@@ -146,7 +150,7 @@ class CourseHelper:
             return stu_info_df
         except:
             logger.warning('个人信息保存失败')
-            return None
+            return pd.DataFrame()
 
     def get_course_info(self, save_type='') -> pd.DataFrame:
         """
@@ -158,6 +162,13 @@ class CourseHelper:
         selector = etree.HTML(response.text)
 
         # 获取课程信息
+        try:
+            course_info_element = selector.xpath(
+                '//table[@class="tblnoborder"]')[0]
+        except:
+            logger.warning(
+                'xpath 获取不到课程信息!将 response.text 打印:{}', response.text)
+            return pd.Dataframe()
         course_info_element = selector.xpath('//table[@class="tblnoborder"]')[0]
         course_info_list = []
         for one_piece in course_info_element.xpath('.//tr[@name="rowclass"]'):
@@ -183,7 +194,7 @@ class CourseHelper:
             return course_info_df
         except:
             logger.warning('课程信息保存失败')
-            return None
+            return pd.DataFrame()
 
     def get_course_table(self, save_type='') -> pd.DataFrame:
         """
@@ -194,7 +205,12 @@ class CourseHelper:
         response = self.session.get(self.course_table_url, headers=self.headers)
         selector = etree.HTML(response.text)
         # 获取课程表
-        course_table_element = selector.xpath('//table[@class="tblnoborder"]')[1]
+        try:
+            course_table_element = selector.xpath(
+                '//table[@class="tblnoborder"]')[1]
+        except:
+            logger.warning('xpath 解析课程表失败!')
+
         course_table_list = []
         for one_piece in course_table_element.xpath('.//tr[@name="rowweek"]'):
             # 记录课程表的一行信息
@@ -210,7 +226,7 @@ class CourseHelper:
             return course_table_df
         except:
             logger.warning('课程表保存失败')
-            return None
+            return pd.DataFrame()
 
     def choose_course(self, course_info: list) -> list:
         """
@@ -280,6 +296,12 @@ class CourseHelper:
                     logger.info('抢课成功! 终止抢课循环')
                     break
             time.sleep(interval)
+
+    def switch2dict(self, df):
+        if not df.empty:
+            return df.to_dict(orient='records')
+        else:
+            return {}
 
 
 if __name__ == '__main__':
