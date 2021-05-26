@@ -8,6 +8,7 @@ from lxml import etree
 import pandas as pd
 from encrypt import encrypt
 from Logger import logger
+import threading
 
 
 class CourseHelper:
@@ -37,6 +38,7 @@ class CourseHelper:
         self.course_search_url = 'http://xk.autoisp.shu.edu.cn/CourseSelectionStudent/QueryCourseCheck'
         # 初始化动作
         self.login()
+        self.select_term()
 
     def login(self):
         """
@@ -248,15 +250,23 @@ class CourseHelper:
         if '学生限制登录' in response.text:
             logger.error('账号被限制登录!')
             raise RuntimeError('账号被限制登录!')
+        if '选课时间未到' in response.text:
+            logger.error('选课时间未到!')
+            raise RuntimeError('选课时间未到!')
         selector = etree.HTML(response.text)
         # 判断是否选课成功
-        selection_feedback_element = selector.xpath('//tr')[1:-1]  # 掐头去尾
-        feedback_course_info = []
-        for course in selection_feedback_element:
-            feedback_course_info.append([field.strip() for field in course.xpath('.//td/text()')])
-        for feedback_course in feedback_course_info:
-            logger.info(feedback_course[1]+' '+feedback_course[3]+' '+feedback_course[4]+' '+feedback_course[2]+' '+feedback_course[-1])  # TODO use logger
-        return feedback_course_info
+        try:
+            selection_feedback_element = selector.xpath('//tr')[1:-1]  # 掐头去尾
+            feedback_course_info = []
+            for course in selection_feedback_element:
+                feedback_course_info.append([field.strip() for field in course.xpath('.//td/text()')])
+            for feedback_course in feedback_course_info:
+                logger.info(feedback_course[1]+' '+feedback_course[3]+' '+feedback_course[4]+' '+feedback_course[2]+' '+feedback_course[-1])  # TODO use logger
+            return feedback_course_info
+        except:
+            logger.error('未知错误, 选课操作失败! 具体返回页面如下: ')
+            logger.info(response.text)
+            return []
 
     def is_full(self, course_id: str, teacher_id: str) -> bool:
         """
@@ -287,7 +297,7 @@ class CourseHelper:
         """
         count = 1
         while True:
-            logger.info('第{}次查询', count)
+            logger.info('课程号 {}, 教师号 {}: 第 {} 次查询', course_id, teacher_id, count)
             count += 1
             if self.is_full(course_id, teacher_id):
                 feedback = self.choose_course([[course_id, teacher_id]])
@@ -296,6 +306,18 @@ class CourseHelper:
                     logger.info('抢课成功! 终止抢课循环')
                     break
             time.sleep(interval)
+
+    def grab_course_thread(self, course_info: list):
+        """
+        多线程选课
+        :param course_info: 课程信息, 形如 [['08305008', '1002'], ['08306146', '1001']]
+        """
+        grabbers = []
+        for course_piece in course_info:
+            grabber = threading.Thread(target=self.grab_course, args=(course_piece[0], course_piece[1],))
+            grabbers.append(grabber)
+        for grabber in grabbers:
+            grabber.start()
 
     def switch2dict(self, df):
         if not df.empty:
@@ -306,22 +328,25 @@ class CourseHelper:
 
 if __name__ == '__main__':
     # 配置例
-    STU_ID = sys.argv[1]
-    PASSWORD = sys.argv[2]
-    TERM_SEASON = sys.argv[3]
+    STU_ID = sys.argv[1]  # 学号
+    PASSWORD = sys.argv[2]  # 密码
+    TERM_SEASON = sys.argv[3]  # 学期季节
 
     xk = CourseHelper(STU_ID, PASSWORD, TERM_SEASON, path='data')
-    xk.select_term()  # 选择学期
 
     # 获取信息例
-    xk.get_rank_list(save_type='csv')  # 获取选课排名
-    xk.get_stu_info(save_type='csv')  # 获取个人信息
-    xk.get_course_info(save_type='csv')  # 获取课程信息
-    xk.get_course_table(save_type='csv')  # 获取课程表
+    # xk.get_rank_list(save_type='csv')  # 获取选课排名
+    # xk.get_stu_info(save_type='csv')  # 获取个人信息
+    # xk.get_course_info(save_type='csv')  # 获取课程信息
+    # xk.get_course_table(save_type='csv')  # 获取课程表
 
     # 手动选课例
     # course_info = [['08305008', '1001'], ['08305008', '1002']]  # 添加想要选的课程
     # xk.choose_course(course_info)  # 发送选课请求
 
     # 抢课例
-    xk.grab_course('08305008', '1001')  # 添加想要抢的课程, 开始抢课
+    # xk.grab_course('08305008', '1002')  # 添加想要抢的课程, 开始抢课
+
+    # 多门课程抢课例
+    # course_info = [['08305008', '1002'], ['08306146', '1001']]
+    # xk.grab_course_thread(course_info)
