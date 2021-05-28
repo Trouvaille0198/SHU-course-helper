@@ -2,16 +2,16 @@
 我就是最强捡漏王
 ### 安装依赖
 ```shell
-pip install -r requirement.txt
+pip install -r requirements.txt
 ```
 ### 运行
 格式
 ```shell
-py CourseHelper [学号] [密码] [学期季节]
+py CourseHelper.py [学号] [密码] [学期季节]
 ```
 例如
 ```shell
-py CourseHelper 19120000 Psswrd123 春
+py CourseHelper.py 19120000 Psswrd123 春
 ```
 ### 目前实现的功能
 - 导出
