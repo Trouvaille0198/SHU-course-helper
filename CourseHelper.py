@@ -288,7 +288,7 @@ class CourseHelper:
         else:
             return True
 
-    def grab_course(self, course_id: str, teacher_id: str, interval: float = 0.3):
+    def grab_course(self, course_id: str, teacher_id: str, interval: float = 0.5):
         """
         抢课
         :param cource_id: 课程号
@@ -297,13 +297,17 @@ class CourseHelper:
         """
         count = 1
         while True:
-            logger.info('课程号 {}, 教师号 {}: 第 {} 次查询', course_id, teacher_id, count)
+            if (count % 5000) == 0:
+                logger.info('课程号 {}, 教师号 {}: 已查询 {} 次', course_id, teacher_id, count)
+            else:
+                logger.debug('课程号 {}, 教师号 {}: 第 {} 次查询', course_id, teacher_id, count)
             count += 1
             if self.is_full(course_id, teacher_id):
                 feedback = self.choose_course([[course_id, teacher_id]])
                 logger.info('课程人数有空余!尝试选课')
                 if '成功' in feedback[0][-1]:
-                    logger.info('抢课成功! 终止抢课循环')
+                    logger.info('课程号 {}, 教师号 {}: 抢课成功! 共查询 {} 次，终止抢课循环',
+                                course_id, teacher_id, count)
                     break
             time.sleep(interval)
 
