@@ -4,15 +4,35 @@
 ```shell
 pip install -r requirements.txt
 ```
+
+### 输入个人信息
+打开 `information.json`
+```json
+{
+    "self_info": {
+        "stu_id": "",       // 学号
+        "password": "",     // 密码
+        "term_season": ""   // 学期对应的季节，如 “秋”
+    },
+    "course_info": [
+      // 若要抢课，以列表形式给出课程号和教师号
+        [
+            "",   // 课程号
+            ""    // 教师号
+        ],
+        // 若有多门，继续添加列表即可
+        [
+            "",
+            ""
+        ]
+    ]
+}
+```
 ### 运行
-格式
 ```shell
-py CourseHelper.py [学号] [密码] [学期季节]
+py main.py
 ```
-例如
-```shell
-py CourseHelper.py 19120000 Psswrd123 春
-```
+
 ### 目前实现的功能
 - 导出
   - 个人信息
