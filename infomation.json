@@ -1,0 +1,17 @@
+{
+    "self_info": {
+        "stu_id": "",
+        "password": "",
+        "term_season": ""
+    },
+    "course_info": [
+        [
+            "",
+            ""
+        ],
+        [
+            "",
+            ""
+        ]
+    ]
+}

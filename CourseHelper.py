@@ -4,11 +4,13 @@ import re
 import time
 import sys
 import requests
-from lxml import etree
+from lxml import html
 import pandas as pd
 from encrypt import encrypt
 from Logger import logger
 import threading
+
+etree = html.etree
 
 
 class CourseHelper:
@@ -85,6 +87,9 @@ class CourseHelper:
             response = self.session.post(
                 self.select_url, data=post_data, headers=self.headers
             )
+        if '索引超出了数组界限' in response.text:
+            logger.error('选择学期时发现问题: 索引超出了数组界限')
+            raise RuntimeError('选择学期时发现问题: 索引超出了数组界限')
 
     def save_to_path(self, df, name='unknown', type='csv'):
         """
@@ -283,10 +288,19 @@ class CourseHelper:
             "PageSize": '10'
         }
         response = self.session.post(self.course_search_url, data=post_data, headers=self.headers)
+        if course_id in response.text:
+            return True
         if '未查询到符合条件的数据！' in response.text:
             return False
+        if '索引超出了数组界限' in response.text:
+            logger.error('查询课程时发现问题: 索引超出了数组界限')
+            raise RuntimeError('查询课程时发现问题: 索引超出了数组界限')
+        if '未将对象引用设置到对象的实例' in response.text:
+            logger.error('查询课程时发现问题: 未将对象引用设置到对象的实例')
+            raise RuntimeError('查询课程时发现问题: 未将对象引用设置到对象的实例')
+            return False
         else:
-            return True
+            return False
 
     def grab_course(self, course_id: str, teacher_id: str, interval: float = 0.5):
         """
@@ -331,6 +345,7 @@ class CourseHelper:
 
 
 if __name__ == '__main__':
+
     # 配置例
     STU_ID = sys.argv[1]  # 学号
     PASSWORD = sys.argv[2]  # 密码
