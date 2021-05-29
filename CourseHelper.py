@@ -58,10 +58,10 @@ class CourseHelper:
         except ConnectionError as e:
             logger.Error('校网波动! {}', e)
         if '学期选择' in response.text:
-            logger.info('登陆成功!')
+            logger.info('登录成功!')
         else:
-            logger.error('登陆失败!')
-            raise RuntimeError('账号登陆失败!')
+            logger.error('登录失败!')
+            raise RuntimeError('账号登录失败!')
 
     def select_term(self):
         """
@@ -296,8 +296,9 @@ class CourseHelper:
             logger.error('查询课程时发现问题: 索引超出了数组界限')
             raise RuntimeError('查询课程时发现问题: 索引超出了数组界限')
         if '未将对象引用设置到对象的实例' in response.text:
-            logger.error('查询课程时发现问题: 未将对象引用设置到对象的实例')
-            raise RuntimeError('查询课程时发现问题: 未将对象引用设置到对象的实例')
+            logger.warning('查询课程时发现问题: 未将对象引用设置到对象的实例，可能是因为账号在他处登录')
+            logger.info('正在尝试重新登录')
+            self.select_term()
             return False
         else:
             return False
@@ -311,7 +312,7 @@ class CourseHelper:
         """
         count = 1
         while True:
-            if (count % 5000) == 0:
+            if (count % 1000) == 0:
                 logger.info('课程号 {}, 教师号 {}: 已查询 {} 次', course_id, teacher_id, count)
             else:
                 logger.debug('课程号 {}, 教师号 {}: 第 {} 次查询', course_id, teacher_id, count)
